@@ -59,8 +59,11 @@ ${historySection}
 ${diffContent}
 \`\`\`
 
-## Output
-Only output the commit message, nothing else. No quotes, no explanation.`;
+## Output Rules
+- Output exactly ONE commit message for ALL changes combined
+- Do NOT output multiple lines or multiple commits
+- Summarize all changes into a single commit message
+- No quotes, no explanation, no markdown`;
 
   if (customPrompt) {
     prompt += `\n\n## Additional Requirements\n${customPrompt}`;
