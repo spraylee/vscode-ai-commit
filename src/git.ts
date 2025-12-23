@@ -21,6 +21,7 @@ interface RepositoryState {
   HEAD: Branch | undefined;
   workingTreeChanges: Change[];
   indexChanges: Change[];
+  untrackedChanges: Change[];
 }
 
 interface Branch {
@@ -64,6 +65,37 @@ export async function getGitExtension(): Promise<Git | null> {
   return gitExtension.exports.getAPI(1);
 }
 
+async function readFileContent(uri: vscode.Uri): Promise<string> {
+  try {
+    const content = await vscode.workspace.fs.readFile(uri);
+    return Buffer.from(content).toString('utf-8');
+  } catch {
+    return '';
+  }
+}
+
+async function generateUntrackedDiff(changes: Change[], rootPath: string): Promise<string> {
+  const diffs: string[] = [];
+
+  for (const change of changes) {
+    const relativePath = change.uri.fsPath.replace(rootPath + '/', '');
+    const content = await readFileContent(change.uri);
+
+    if (content) {
+      const lines = content.split('\n');
+      const diffLines = lines.map((line) => `+${line}`).join('\n');
+      diffs.push(`diff --git a/${relativePath} b/${relativePath}
+new file mode 100644
+--- /dev/null
++++ b/${relativePath}
+@@ -0,0 +1,${lines.length} @@
+${diffLines}`);
+    }
+  }
+
+  return diffs.join('\n\n');
+}
+
 export async function getGitInfo(maxHistoryCount: number): Promise<GitInfo> {
   const git = await getGitExtension();
 
@@ -77,24 +109,43 @@ export async function getGitInfo(maxHistoryCount: number): Promise<GitInfo> {
 
   const repository = git.repositories[0];
   const state = repository.state;
+  const rootPath = repository.rootUri.fsPath;
 
-  // Check for changes (staged or unstaged)
+  // Check for changes (staged, unstaged, or untracked)
   const hasStagedChanges = state.indexChanges.length > 0;
   const hasUnstagedChanges = state.workingTreeChanges.length > 0;
+  const hasUntrackedChanges = state.untrackedChanges?.length > 0;
 
-  if (!hasStagedChanges && !hasUnstagedChanges) {
+  if (!hasStagedChanges && !hasUnstagedChanges && !hasUntrackedChanges) {
     throw new Error('没有任何变更可以提交');
   }
 
-  // Get diff: prefer staged changes, fallback to all changes
-  let diff: string;
+  // Get diff: if staged exists, use staged only; otherwise collect all changes
+  const diffParts: string[] = [];
+
   if (hasStagedChanges) {
-    // Get staged changes only
-    diff = await repository.diff(true);
+    // User has staged specific changes, use only those
+    const stagedDiff = await repository.diff(true);
+    if (stagedDiff?.trim()) {
+      diffParts.push(stagedDiff);
+    }
   } else {
-    // No staged changes, get all changes
-    diff = await repository.diff(false);
+    // No staged changes, collect all: unstaged + untracked
+    if (hasUnstagedChanges) {
+      const unstagedDiff = await repository.diff(false);
+      if (unstagedDiff?.trim()) {
+        diffParts.push(unstagedDiff);
+      }
+    }
+    if (hasUntrackedChanges) {
+      const untrackedDiff = await generateUntrackedDiff(state.untrackedChanges, rootPath);
+      if (untrackedDiff?.trim()) {
+        diffParts.push(untrackedDiff);
+      }
+    }
   }
+
+  const diff = diffParts.join('\n\n');
 
   if (!diff || diff.trim() === '') {
     throw new Error('没有可用的 diff 内容');
