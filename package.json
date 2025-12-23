@@ -1,0 +1,85 @@
+{
+  "name": "vscode-ai-commit",
+  "displayName": "AI Commit Message Generator",
+  "description": "Generate commit messages using Claude AI",
+  "version": "0.0.1",
+  "publisher": "sprayli",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "aiCommit.generate",
+        "title": "AI Generate Commit Message",
+        "icon": "$(lightbulb)"
+      }
+    ],
+    "menus": {
+      "scm/title": [
+        {
+          "command": "aiCommit.generate",
+          "group": "navigation",
+          "when": "scmProvider == git"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "AI Commit",
+      "properties": {
+        "aiCommit.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Claude API Key"
+        },
+        "aiCommit.baseUrl": {
+          "type": "string",
+          "default": "https://api.anthropic.com",
+          "description": "API Base URL (supports proxy)"
+        },
+        "aiCommit.model": {
+          "type": "string",
+          "default": "claude-haiku-4-5-20251001",
+          "description": "Model to use"
+        },
+        "aiCommit.maxHistoryCount": {
+          "type": "number",
+          "default": 10,
+          "minimum": 1,
+          "maximum": 50,
+          "description": "Number of history commits to read"
+        },
+        "aiCommit.language": {
+          "type": "string",
+          "default": "en",
+          "description": "Language for commit message (e.g., en, zh-CN)"
+        },
+        "aiCommit.customPrompt": {
+          "type": "string",
+          "default": "",
+          "description": "Custom prompt to append to the default prompt"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "build": "npm run compile",
+    "lint": "eslint src --ext ts"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.3.0"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.30.0"
+  }
+}
