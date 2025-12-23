@@ -116,10 +116,27 @@ export async function getGitInfo(maxHistoryCount: number): Promise<GitInfo> {
   const state = repository.state;
   const rootPath = repository.rootUri.fsPath;
 
+  // Debug: log state info
+  const output = vscode.window.createOutputChannel('AI Commit Debug');
+  output.appendLine(`=== Git State Debug ===`);
+  output.appendLine(`rootPath: ${rootPath}`);
+  output.appendLine(`indexChanges (staged): ${state.indexChanges.length}`);
+  state.indexChanges.forEach((c) => output.appendLine(`  - ${c.uri.fsPath}`));
+  output.appendLine(`workingTreeChanges (unstaged): ${state.workingTreeChanges.length}`);
+  state.workingTreeChanges.forEach((c) => output.appendLine(`  - ${c.uri.fsPath}`));
+  output.appendLine(`untrackedChanges: ${state.untrackedChanges?.length ?? 'undefined'}`);
+  state.untrackedChanges?.forEach((c) => output.appendLine(`  - ${c.uri.fsPath}`));
+  output.appendLine(`state keys: ${Object.keys(state).join(', ')}`);
+  output.show();
+
   // Check for changes (staged, unstaged, or untracked)
   const hasStagedChanges = state.indexChanges.length > 0;
   const hasUnstagedChanges = state.workingTreeChanges.length > 0;
   const hasUntrackedChanges = state.untrackedChanges?.length > 0;
+
+  output.appendLine(`hasStagedChanges: ${hasStagedChanges}`);
+  output.appendLine(`hasUnstagedChanges: ${hasUnstagedChanges}`);
+  output.appendLine(`hasUntrackedChanges: ${hasUntrackedChanges}`);
 
   if (!hasStagedChanges && !hasUnstagedChanges && !hasUntrackedChanges) {
     throw new Error('没有任何变更可以提交');
@@ -131,6 +148,7 @@ export async function getGitInfo(maxHistoryCount: number): Promise<GitInfo> {
   if (hasStagedChanges) {
     // User has staged specific changes, use only those
     const stagedDiff = await repository.diff(true);
+    output.appendLine(`stagedDiff length: ${stagedDiff?.length ?? 0}`);
     if (stagedDiff?.trim()) {
       diffParts.push(stagedDiff);
     }
@@ -138,12 +156,14 @@ export async function getGitInfo(maxHistoryCount: number): Promise<GitInfo> {
     // No staged changes, collect all: unstaged + untracked
     if (hasUnstagedChanges) {
       const unstagedDiff = await repository.diff(false);
+      output.appendLine(`unstagedDiff length: ${unstagedDiff?.length ?? 0}`);
       if (unstagedDiff?.trim()) {
         diffParts.push(unstagedDiff);
       }
     }
     if (hasUntrackedChanges) {
       const untrackedDiff = await generateUntrackedDiff(state.untrackedChanges, rootPath);
+      output.appendLine(`untrackedDiff length: ${untrackedDiff?.length ?? 0}`);
       if (untrackedDiff?.trim()) {
         diffParts.push(untrackedDiff);
       }
@@ -151,6 +171,7 @@ export async function getGitInfo(maxHistoryCount: number): Promise<GitInfo> {
   }
 
   const diff = diffParts.join('\n\n');
+  output.appendLine(`final diff length: ${diff.length}`);
 
   if (!diff || diff.trim() === '') {
     throw new Error('没有可用的 diff 内容');
