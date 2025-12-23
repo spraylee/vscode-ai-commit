@@ -35,6 +35,23 @@ interface Change {
   status: number;
 }
 
+// Git status codes
+// See: https://github.com/microsoft/vscode/blob/main/extensions/git/src/api/git.d.ts
+enum Status {
+  INDEX_MODIFIED = 0,
+  INDEX_ADDED = 1,
+  INDEX_DELETED = 2,
+  INDEX_RENAMED = 3,
+  INDEX_COPIED = 4,
+  MODIFIED = 5,
+  DELETED = 6,
+  UNTRACKED = 7,
+  IGNORED = 8,
+  INTENT_TO_ADD = 9,
+  INTENT_TO_RENAME = 10,
+  TYPE_CHANGED = 11,
+}
+
 interface LogOptions {
   maxEntries?: number;
 }
@@ -121,24 +138,28 @@ export async function getGitInfo(maxHistoryCount: number): Promise<GitInfo> {
   output.appendLine(`=== Git State Debug ===`);
   output.appendLine(`rootPath: ${rootPath}`);
   output.appendLine(`indexChanges (staged): ${state.indexChanges.length}`);
-  state.indexChanges.forEach((c) => output.appendLine(`  - ${c.uri.fsPath}`));
+  state.indexChanges.forEach((c) => output.appendLine(`  - [${c.status}] ${c.uri.fsPath}`));
   output.appendLine(`workingTreeChanges (unstaged): ${state.workingTreeChanges.length}`);
-  state.workingTreeChanges.forEach((c) => output.appendLine(`  - ${c.uri.fsPath}`));
+  state.workingTreeChanges.forEach((c) => output.appendLine(`  - [${c.status}] ${c.uri.fsPath}`));
   output.appendLine(`untrackedChanges: ${state.untrackedChanges?.length ?? 'undefined'}`);
-  state.untrackedChanges?.forEach((c) => output.appendLine(`  - ${c.uri.fsPath}`));
-  output.appendLine(`state keys: ${Object.keys(state).join(', ')}`);
+  state.untrackedChanges?.forEach((c) => output.appendLine(`  - [${c.status}] ${c.uri.fsPath}`));
   output.show();
 
-  // Check for changes (staged, unstaged, or untracked)
+  // Separate tracked and untracked changes in workingTreeChanges
+  const trackedChanges = state.workingTreeChanges.filter((c) => c.status !== Status.UNTRACKED);
+  const untrackedInWorkingTree = state.workingTreeChanges.filter((c) => c.status === Status.UNTRACKED);
+  const allUntrackedChanges = [...(state.untrackedChanges || []), ...untrackedInWorkingTree];
+
+  output.appendLine(`trackedChanges: ${trackedChanges.length}`);
+  output.appendLine(`untrackedInWorkingTree: ${untrackedInWorkingTree.length}`);
+  output.appendLine(`allUntrackedChanges: ${allUntrackedChanges.length}`);
+
+  // Check for changes
   const hasStagedChanges = state.indexChanges.length > 0;
-  const hasUnstagedChanges = state.workingTreeChanges.length > 0;
-  const hasUntrackedChanges = state.untrackedChanges?.length > 0;
+  const hasTrackedChanges = trackedChanges.length > 0;
+  const hasUntrackedChanges = allUntrackedChanges.length > 0;
 
-  output.appendLine(`hasStagedChanges: ${hasStagedChanges}`);
-  output.appendLine(`hasUnstagedChanges: ${hasUnstagedChanges}`);
-  output.appendLine(`hasUntrackedChanges: ${hasUntrackedChanges}`);
-
-  if (!hasStagedChanges && !hasUnstagedChanges && !hasUntrackedChanges) {
+  if (!hasStagedChanges && !hasTrackedChanges && !hasUntrackedChanges) {
     throw new Error('没有任何变更可以提交');
   }
 
@@ -153,16 +174,16 @@ export async function getGitInfo(maxHistoryCount: number): Promise<GitInfo> {
       diffParts.push(stagedDiff);
     }
   } else {
-    // No staged changes, collect all: unstaged + untracked
-    if (hasUnstagedChanges) {
-      const unstagedDiff = await repository.diff(false);
-      output.appendLine(`unstagedDiff length: ${unstagedDiff?.length ?? 0}`);
-      if (unstagedDiff?.trim()) {
-        diffParts.push(unstagedDiff);
+    // No staged changes, collect all: tracked changes + untracked files
+    if (hasTrackedChanges) {
+      const trackedDiff = await repository.diff(false);
+      output.appendLine(`trackedDiff length: ${trackedDiff?.length ?? 0}`);
+      if (trackedDiff?.trim()) {
+        diffParts.push(trackedDiff);
       }
     }
     if (hasUntrackedChanges) {
-      const untrackedDiff = await generateUntrackedDiff(state.untrackedChanges, rootPath);
+      const untrackedDiff = await generateUntrackedDiff(allUntrackedChanges, rootPath);
       output.appendLine(`untrackedDiff length: ${untrackedDiff?.length ?? 0}`);
       if (untrackedDiff?.trim()) {
         diffParts.push(untrackedDiff);
