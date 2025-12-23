@@ -13,6 +13,7 @@ interface Repository {
   rootUri: vscode.Uri;
   inputBox: { value: string };
   state: RepositoryState;
+  status(): Promise<void>;
   diff(cached?: boolean): Promise<string>;
   log(options?: LogOptions): Promise<Commit[]>;
 }
@@ -108,6 +109,10 @@ export async function getGitInfo(maxHistoryCount: number): Promise<GitInfo> {
   }
 
   const repository = git.repositories[0];
+
+  // Refresh git status to ensure we have latest state
+  await repository.status();
+
   const state = repository.state;
   const rootPath = repository.rootUri.fsPath;
 
