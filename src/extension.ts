@@ -3,6 +3,7 @@ import { getConfig, validateConfig } from './config';
 import { getGitInfo } from './git';
 import { buildPrompt } from './prompt';
 import { generateCommitMessage } from './claude';
+import { logRequest, logResponse, logError } from './logger';
 
 export function activate(context: vscode.ExtensionContext) {
   const disposable = vscode.commands.registerCommand('aiCommit.generate', async () => {
@@ -42,8 +43,14 @@ export function activate(context: vscode.ExtensionContext) {
             customPrompt: config.customPrompt,
           });
 
+          // Log request
+          logRequest(prompt);
+
           // Generate commit message
           const commitMessage = await generateCommitMessage(prompt, config);
+
+          // Log response
+          logResponse(commitMessage);
 
           // Fill in the input box
           gitInfo.repository.inputBox.value = commitMessage;
@@ -53,6 +60,7 @@ export function activate(context: vscode.ExtensionContext) {
       );
     } catch (error) {
       const message = error instanceof Error ? error.message : '生成失败';
+      logError(message);
       vscode.window.showErrorMessage(`AI Commit: ${message}`);
     }
   });
