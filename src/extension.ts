@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { getConfig, validateConfig } from './config';
 import { getGitInfo } from './git';
 import { buildPrompt } from './prompt';
-import { generateCommitMessage } from './claude';
+import { generateCommitMessage } from './ai';
 import { logRequest, logResponse, logError } from './logger';
 
 export function activate(context: vscode.ExtensionContext) {

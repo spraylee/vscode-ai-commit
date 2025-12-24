@@ -35,7 +35,8 @@ export function buildPrompt(params: PromptParams): string {
 - Keep short: api, ui, config, auth, etc.
 
 ## Message Rules
-- Use ${language} language
+- Type and scope MUST always be in English
+- Only the message part (after colon) should use ${language} language
 - Describe intent, not details
 - Use common abbreviations: rm, init, config, impl, btn, etc.
 - All lowercase, no period
