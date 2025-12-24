@@ -50,11 +50,15 @@
           "default": "openai",
           "enum": [
             "claude",
-            "openai"
+            "openai",
+            "azure",
+            "hunyuan"
           ],
           "enumDescriptions": [
             "Claude (Anthropic)",
-            "OpenAI (GPT)"
+            "OpenAI (GPT)",
+            "Azure OpenAI",
+            "混元 (Tencent)"
           ],
           "description": "AI provider to use"
         },
@@ -68,16 +72,22 @@
           "order": 2,
           "type": "string",
           "default": "",
-          "description": "API Base URL (leave empty for default: Claude=https://api.anthropic.com, OpenAI=https://api.openai.com/v1)"
+          "description": "API Base URL (leave empty for default. Claude=https://api.anthropic.com, OpenAI=https://api.openai.com/v1, Azure=your endpoint)"
         },
         "aiCommit.model": {
           "order": 3,
           "type": "string",
           "default": "",
-          "description": "Model to use (leave empty for default: Claude=claude-haiku-4-5-20251001, OpenAI=gpt-4o-mini)"
+          "description": "Model to use (leave empty for default: Claude=claude-haiku-4-5-20251001, OpenAI/Azure=gpt-4o-mini)"
+        },
+        "aiCommit.azureApiVersion": {
+          "order": 4,
+          "type": "string",
+          "default": "2024-12-01-preview",
+          "description": "Azure OpenAI API version (only used when provider is azure)"
         },
         "aiCommit.maxHistoryCount": {
-          "order": 4,
+          "order": 5,
           "type": "number",
           "default": 10,
           "minimum": 1,
@@ -85,13 +95,13 @@
           "description": "Number of history commits to read"
         },
         "aiCommit.language": {
-          "order": 5,
+          "order": 6,
           "type": "string",
           "default": "en",
           "description": "Language for commit message (e.g., en, zh-CN)"
         },
         "aiCommit.customPrompt": {
-          "order": 6,
+          "order": 7,
           "type": "string",
           "default": "",
           "description": "Custom prompt to append to the default prompt"
