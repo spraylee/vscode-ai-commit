@@ -114,8 +114,7 @@
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "build": "npm run compile",
-    "package": "vsce package",
-    "lint": "eslint src --ext ts"
+    "package": "vsce package"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
