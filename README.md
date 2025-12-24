@@ -1,9 +1,10 @@
 # AI Commit Message Generator
 
-使用 Claude AI 自动生成 Git commit message 的 VSCode 扩展。
+使用 AI 自动生成 Git commit message 的 VSCode 扩展。
 
 ## 功能
 
+- 支持多种 AI 服务：Claude、OpenAI、Azure OpenAI、混元
 - 在源代码管理视图添加一键生成按钮
 - 分析当前变更和历史提交记录
 - 遵循 Conventional Commits 规范：`type(scope): message`
@@ -41,16 +42,30 @@ npm run package
 
 | 配置项 | 说明 | 默认值 |
 |--------|------|--------|
-| `aiCommit.apiKey` | Claude API Key（必填） | - |
-| `aiCommit.baseUrl` | API Base URL（支持代理） | `https://api.anthropic.com` |
-| `aiCommit.model` | 使用的模型 | `claude-haiku-4-5-20251001` |
+| `aiCommit.provider` | AI 服务提供商 | `openai` |
+| `aiCommit.apiKey` | API Key（必填） | - |
+| `aiCommit.baseUrl` | API Base URL（留空使用默认值） | - |
+| `aiCommit.model` | 使用的模型（留空使用默认值） | - |
+| `aiCommit.azureApiVersion` | Azure API 版本（仅 Azure，留空使用默认值） | - |
 | `aiCommit.maxHistoryCount` | 读取的历史提交数量 | `10` |
 | `aiCommit.language` | 生成的 commit message 语言 | `en` |
 | `aiCommit.customPrompt` | 自定义 prompt（追加到默认 prompt 后） | - |
 
+### 支持的 AI 服务
+
+| Provider | 默认 Base URL | 默认模型 |
+|----------|--------------|---------|
+| `claude` | `https://api.anthropic.com` | `claude-haiku-4-5-20251001` |
+| `openai` | `https://api.openai.com/v1` | `gpt-4o-mini` |
+| `azure` | 需要配置你的 Azure endpoint | `gpt-4o-mini` |
+| `hunyuan` | `https://api.hunyuan.cloud.tencent.com/v1` | `hunyuan-turbos-latest` |
+
 ### 获取 API Key
 
-访问 [Anthropic Console](https://console.anthropic.com/) 获取 API Key。
+- **Claude**: [Anthropic Console](https://console.anthropic.com/)
+- **OpenAI**: [OpenAI Platform](https://platform.openai.com/)
+- **Azure OpenAI**: [Azure Portal](https://portal.azure.com/)
+- **混元**: [腾讯云控制台](https://console.cloud.tencent.com/hunyuan)
 
 ## 使用方法
 
