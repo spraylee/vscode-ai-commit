@@ -48,7 +48,7 @@ export function getConfig(): Config {
     maxHistoryCount: config.get<number>("maxHistoryCount", 10),
     language: config.get<string>("language", "en"),
     customPrompt: config.get<string>("customPrompt", ""),
-    azureApiVersion: config.get<string>("azureApiVersion", "2024-12-01-preview"),
+    azureApiVersion: config.get<string>("azureApiVersion", "") || "2024-12-01-preview",
   };
 }
 

@@ -83,8 +83,8 @@
         "aiCommit.azureApiVersion": {
           "order": 4,
           "type": "string",
-          "default": "2024-12-01-preview",
-          "description": "Azure OpenAI API version (only used when provider is azure)"
+          "default": "",
+          "description": "Azure OpenAI API version (only for Azure provider, leave empty for default: 2024-12-01-preview)"
         },
         "aiCommit.maxHistoryCount": {
           "order": 5,
