@@ -114,6 +114,106 @@ ${diffLines}`);
   return diffs.join('\n\n');
 }
 
+// Built-in ignore patterns for large/lock files
+const IGNORED_FILE_PATTERNS = [
+  'package-lock.json',
+  'pnpm-lock.yaml',
+  'yarn.lock',
+  'bun.lockb',
+  'composer.lock',
+  'Gemfile.lock',
+  'Cargo.lock',
+  'poetry.lock',
+  'Pipfile.lock',
+  'packages.lock.json', // NuGet
+  'paket.lock', // .NET Paket
+  'shrinkwrap.yaml', // pnpm
+  '*.min.js',
+  '*.min.css',
+  '*.map', // source maps
+];
+
+function isIgnoredFile(filePath: string): boolean {
+  const fileName = filePath.split('/').pop() || '';
+  return IGNORED_FILE_PATTERNS.some((pattern) => {
+    if (pattern.startsWith('*')) {
+      return fileName.endsWith(pattern.slice(1));
+    }
+    return fileName === pattern;
+  });
+}
+
+interface DiffFilterResult {
+  filteredDiff: string;
+  ignoredSummaries: string[];
+}
+
+function parseDiffStats(diffContent: string): { additions: number; deletions: number } {
+  const lines = diffContent.split('\n');
+  let additions = 0;
+  let deletions = 0;
+
+  for (const line of lines) {
+    if (line.startsWith('+') && !line.startsWith('+++')) {
+      additions++;
+    } else if (line.startsWith('-') && !line.startsWith('---')) {
+      deletions++;
+    }
+  }
+
+  return { additions, deletions };
+}
+
+function filterDiffByIgnoreList(rawDiff: string): DiffFilterResult {
+  // Split diff into individual file diffs
+  const fileDiffs = rawDiff.split(/(?=^diff --git )/m).filter((d) => d.trim());
+
+  const filteredParts: string[] = [];
+  const ignoredSummaries: string[] = [];
+
+  for (const fileDiff of fileDiffs) {
+    // Extract file path from diff header: diff --git a/path b/path
+    const match = fileDiff.match(/^diff --git a\/(.+?) b\//);
+    if (!match) {
+      filteredParts.push(fileDiff);
+      continue;
+    }
+
+    const filePath = match[1];
+
+    if (isIgnoredFile(filePath)) {
+      const stats = parseDiffStats(fileDiff);
+      ignoredSummaries.push(`${filePath}: +${stats.additions} -${stats.deletions} lines (content too large, showing summary only)`);
+    } else {
+      filteredParts.push(fileDiff);
+    }
+  }
+
+  return {
+    filteredDiff: filteredParts.join('\n'),
+    ignoredSummaries,
+  };
+}
+
+function selectRepository(repositories: Repository[]): Repository {
+  if (repositories.length === 1) {
+    return repositories[0];
+  }
+
+  // Try to match workspace root folder
+  const workspaceFolders = vscode.workspace.workspaceFolders;
+  if (workspaceFolders && workspaceFolders.length > 0) {
+    const rootPath = workspaceFolders[0].uri.fsPath;
+    const matched = repositories.find((repo) => repo.rootUri.fsPath === rootPath);
+    if (matched) {
+      return matched;
+    }
+  }
+
+  // Fallback to first repository
+  return repositories[0];
+}
+
 export async function getGitInfo(maxHistoryCount: number): Promise<GitInfo> {
   const git = await getGitExtension();
 
@@ -125,7 +225,7 @@ export async function getGitInfo(maxHistoryCount: number): Promise<GitInfo> {
     throw new Error('未找到 Git 仓库，请打开一个 Git 项目');
   }
 
-  const repository = git.repositories[0];
+  const repository = selectRepository(git.repositories);
 
   // Refresh git status to ensure we have latest state
   await repository.status();
@@ -149,30 +249,58 @@ export async function getGitInfo(maxHistoryCount: number): Promise<GitInfo> {
 
   // Get diff: if staged exists, use staged only; otherwise collect all changes
   const diffParts: string[] = [];
+  let allIgnoredSummaries: string[] = [];
 
   if (hasStagedChanges) {
     // User has staged specific changes, use only those
     const stagedDiff = await repository.diff(true);
     if (stagedDiff?.trim()) {
-      diffParts.push(stagedDiff);
+      const { filteredDiff, ignoredSummaries } = filterDiffByIgnoreList(stagedDiff);
+      if (filteredDiff.trim()) {
+        diffParts.push(filteredDiff);
+      }
+      allIgnoredSummaries = allIgnoredSummaries.concat(ignoredSummaries);
     }
   } else {
     // No staged changes, collect all: tracked changes + untracked files
     if (hasTrackedChanges) {
       const trackedDiff = await repository.diff(false);
       if (trackedDiff?.trim()) {
-        diffParts.push(trackedDiff);
+        const { filteredDiff, ignoredSummaries } = filterDiffByIgnoreList(trackedDiff);
+        if (filteredDiff.trim()) {
+          diffParts.push(filteredDiff);
+        }
+        allIgnoredSummaries = allIgnoredSummaries.concat(ignoredSummaries);
       }
     }
     if (hasUntrackedChanges) {
-      const untrackedDiff = await generateUntrackedDiff(allUntrackedChanges, rootPath);
-      if (untrackedDiff?.trim()) {
-        diffParts.push(untrackedDiff);
+      // Filter untracked files before generating diff
+      const filteredUntracked = allUntrackedChanges.filter((change) => {
+        const relativePath = change.uri.fsPath.replace(rootPath + '/', '');
+        if (isIgnoredFile(relativePath)) {
+          // Count lines for ignored untracked files
+          allIgnoredSummaries.push(`${relativePath}: new file (content too large, showing summary only)`);
+          return false;
+        }
+        return true;
+      });
+
+      if (filteredUntracked.length > 0) {
+        const untrackedDiff = await generateUntrackedDiff(filteredUntracked, rootPath);
+        if (untrackedDiff?.trim()) {
+          diffParts.push(untrackedDiff);
+        }
       }
     }
   }
 
-  const diff = diffParts.join('\n\n');
+  // Build final diff with ignored file summaries
+  let diff = diffParts.join('\n\n');
+
+  if (allIgnoredSummaries.length > 0) {
+    const summarySection = allIgnoredSummaries.join('\n');
+    diff = diff ? `${diff}\n\n${summarySection}` : summarySection;
+  }
 
   if (!diff || diff.trim() === '') {
     throw new Error('没有可用的 diff 内容');
