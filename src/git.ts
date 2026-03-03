@@ -131,6 +131,31 @@ const IGNORED_FILE_PATTERNS = [
   '*.min.js',
   '*.min.css',
   '*.map', // source maps
+  // Binary document files - these are large and don't have meaningful diffs
+  '*.docx',
+  '*.xlsx',
+  '*.pptx',
+  '*.pdf',
+  '*.zip',
+  '*.tar',
+  '*.gz',
+  '*.rar',
+  '*.7z',
+  '*.png',
+  '*.jpg',
+  '*.jpeg',
+  '*.gif',
+  '*.bmp',
+  '*.ico',
+  '*.svg',
+  '*.mp4',
+  '*.mp3',
+  '*.wav',
+  '*.mov',
+  '*.exe',
+  '*.dll',
+  '*.so',
+  '*.dylib',
 ];
 
 function isIgnoredFile(filePath: string): boolean {

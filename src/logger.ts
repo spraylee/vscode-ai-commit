@@ -9,13 +9,28 @@ function getOutputChannel(): vscode.OutputChannel {
   return outputChannel;
 }
 
-export function logRequest(prompt: string): void {
+export function logRequest(options: {
+  prompt: string;
+  model: string;
+  provider: string;
+  thinking?: boolean;
+}): void {
   const channel = getOutputChannel();
   const timestamp = new Date().toLocaleString();
   channel.appendLine(`\n${'='.repeat(60)}`);
-  channel.appendLine(`[${timestamp}] Request to AI`);
+  channel.appendLine(`[${timestamp}] Request to AI (${options.provider})`);
   channel.appendLine('='.repeat(60));
-  channel.appendLine(prompt);
+  channel.appendLine(`Model: ${options.model}`);
+  channel.appendLine(`Thinking: ${options.thinking ? 'enabled' : 'disabled'}`);
+  channel.appendLine(`Prompt length: ${options.prompt.length} chars`);
+  channel.appendLine('-'.repeat(40));
+  channel.appendLine(options.prompt);
+  channel.appendLine('\n');
+}
+
+export function logDebug(message: string): void {
+  const channel = getOutputChannel();
+  channel.appendLine(`[DEBUG] ${message}`);
 }
 
 export function logResponse(response: string): void {

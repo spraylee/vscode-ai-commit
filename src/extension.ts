@@ -44,7 +44,12 @@ export function activate(context: vscode.ExtensionContext) {
           });
 
           // Log request
-          logRequest(prompt);
+          logRequest({
+            prompt,
+            model: config.model,
+            provider: config.provider,
+            thinking: false, // thinking 在代码中已禁用
+          });
 
           // Generate commit message
           const commitMessage = await generateCommitMessage(prompt, config);
