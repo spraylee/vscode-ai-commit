@@ -1,12 +1,37 @@
 {
-  "name": "vscode-ai-commit",
-  "displayName": "AI Commit Message Generator",
-  "description": "Generate commit messages using AI (Claude/OpenAI)",
-  "version": "0.0.1",
-  "publisher": "sprayli",
+  "name": "vscode-ai-commit-generator",
+  "displayName": "Smart Commit Generator",
+  "description": "Generate commit messages using AI. Supports any OpenAI/Claude-compatible model including Claude, OpenAI, Azure, Hunyuan, GLM, DeepSeek, MiniMax, Kimi, etc.",
+  "version": "0.0.2",
+  "publisher": "spraylee",
+  "icon": "images/icon.png",
+  "galleryBanner": {
+    "color": "#1e1e2e",
+    "theme": "dark"
+  },
+  "badges": [
+    {
+      "url": "https://img.shields.io/visual-studio-marketplace/v/spraylee.vscode-ai-commit-generator",
+      "href": "https://marketplace.visualstudio.com/items?itemName=spraylee.vscode-ai-commit-generator",
+      "description": "VS Code Marketplace Version"
+    },
+    {
+      "url": "https://img.shields.io/visual-studio-marketplace/i/spraylee.vscode-ai-commit-generator",
+      "href": "https://marketplace.visualstudio.com/items?itemName=spraylee.vscode-ai-commit-generator",
+      "description": "VS Code Marketplace Installs"
+    }
+  ],
+  "keywords": [
+    "git",
+    "commit",
+    "ai",
+    "conventional-commits",
+    "openai",
+    "claude"
+  ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/spraylee/vscode-ai-commit"
+    "url": "https://github.com/spraylee/vscode-ai-commit-generator"
   },
   "license": "MIT",
   "engines": {
