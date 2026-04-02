@@ -3,7 +3,7 @@ import { Config } from "./config";
 
 export async function generateCommitMessage(
   prompt: string,
-  config: Config
+  config: Config,
 ): Promise<string> {
   const client = new OpenAI({
     apiKey: config.apiKey,
@@ -13,6 +13,7 @@ export async function generateCommitMessage(
   const response = await client.chat.completions.create({
     model: config.model,
     max_tokens: 1024,
+    stream: false,
     messages: [
       {
         role: "user",
