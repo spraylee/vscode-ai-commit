@@ -12,7 +12,7 @@ export async function generateCommitMessage(
 
   const response = await client.chat.completions.create({
     model: config.model,
-    max_tokens: 1024,
+    max_completion_tokens: 1024,
     stream: false,
     messages: [
       {
